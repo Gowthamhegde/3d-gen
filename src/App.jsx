@@ -1,6 +1,6 @@
 import React, { useState, useRef, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Box, Sphere, Cylinder, Environment, TransformControls } from '@react-three/drei'
+import { OrbitControls, Box, Sphere, Cylinder, Environment, TransformControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { ToastContainer, toast } from 'react-toastify'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter'
@@ -10,12 +10,36 @@ import './App.css'
 // This is a placeholder for the actual API endpoint
 const API_ENDPOINT = 'https://api.example.com/generate-3d-model'
 
-function Scene({ modelDetails, scale, lightIntensity, materialPreset }) {
+function GLTFModel({ modelPath, scale }) {
+  const { scene } = useGLTF(modelPath)
+  const ref = useRef()
+
+  useFrame((state, delta) => {
+    if (ref.current) {
+      ref.current.rotation.y += delta * 0.5
+    }
+  })
+
+  return <primitive ref={ref} object={scene} scale={scale} />
+}
+
+function Scene({ modelDetails, scale, lightIntensity, materialPreset, sceneRef, gltfModelPath }) {
   const groupRef = useRef()
-  const sceneRef = useRef()
   
-  // Create texture loaders
+  // Create texture loaders with enhanced settings
   const textureLoader = new THREE.TextureLoader()
+  textureLoader.crossOrigin = 'anonymous'
+  
+  // Add environment map for realistic reflections
+  const envMap = new THREE.CubeTextureLoader().load([
+    'https://threejs.org/examples/textures/cube/pisa/px.png',
+    'https://threejs.org/examples/textures/cube/pisa/nx.png',
+    'https://threejs.org/examples/textures/cube/pisa/py.png',
+    'https://threejs.org/examples/textures/cube/pisa/ny.png',
+    'https://threejs.org/examples/textures/cube/pisa/pz.png',
+    'https://threejs.org/examples/textures/cube/pisa/nz.png'
+  ])
+  envMap.encoding = THREE.sRGBEncoding
   
   // Load common textures
   const woodTexture = textureLoader.load('https://threejs.org/examples/textures/hardwood2_diffuse.jpg')
@@ -60,11 +84,28 @@ function Scene({ modelDetails, scale, lightIntensity, materialPreset }) {
     }
   })
 
+  if (gltfModelPath) {
+    return <GLTFModel modelPath={gltfModelPath} scale={scale} />
+  }
+
   if (!modelDetails) {
     return (
-      <Box args={[1, 1, 1]}>
-        <meshStandardMaterial color="gray" />
-      </Box>
+      <group>
+        <ambientLight intensity={0.5} />
+        <pointLight position={[10, 10, 10]} intensity={1} castShadow />
+        <Box args={[1, 1, 1]} castShadow receiveShadow>
+          <meshPhysicalMaterial 
+            color="gray"
+            metalness={0.5}
+            roughness={0.5}
+            clearcoat={0.5}
+            clearcoatRoughness={0.3}
+            envMap={envMap}
+            envMapIntensity={1}
+          />
+        </Box>
+        <Environment preset={materialPreset} background blur={0.5} />
+      </group>
     )
   }
 
@@ -1660,6 +1701,7 @@ function App() {
   const [materialPreset, setMaterialPreset] = useState('sunset')
   const [savedModels, setSavedModels] = useState([])
   const [showGallery, setShowGallery] = useState(false)
+  const [gltfModelPath, setGltfModelPath] = useState(null)
   const canvasRef = useRef(null)
 
   const analyzeText = (text) => {
@@ -1740,6 +1782,58 @@ function App() {
       shape = 'windmill'
     } else if (lowerText.includes('volcano')) {
       shape = 'volcano'
+    } else if (lowerText.includes('motorcycle')) {
+      shape = 'motorcycle'
+    } else if (lowerText.includes('truck')) {
+      shape = 'truck'
+    } else if (lowerText.includes('skyscraper')) {
+      shape = 'skyscraper'
+    } else if (lowerText.includes('bridge')) {
+      shape = 'bridge'
+    } else if (lowerText.includes('waterfall')) {
+      shape = 'waterfall'
+    } else if (lowerText.includes('flower')) {
+      shape = 'flower'
+    } else if (lowerText.includes('table')) {
+      shape = 'table'
+    } else if (lowerText.includes('phoenix')) {
+      shape = 'phoenix'
+    } else if (lowerText.includes('unicorn')) {
+      shape = 'unicorn'
+    } else if (lowerText.includes('mech')) {
+      shape = 'mech'
+    } else if (lowerText.includes('submarine')) {
+      shape = 'submarine'
+    } else if (lowerText.includes('helicopter')) {
+      shape = 'helicopter'
+    } else if (lowerText.includes('pyramid')) {
+      shape = 'pyramid'
+    } else if (lowerText.includes('lighthouse')) {
+      shape = 'lighthouse'
+    } else if (lowerText.includes('windmill')) {
+      shape = 'windmill'
+    } else if (lowerText.includes('volcano')) {
+      shape = 'volcano'
+    } else if (lowerText.includes('tower')) {
+      shape = 'tower'
+    } else if (lowerText.includes('mountain')) {
+      shape = 'mountain'
+    } else if (lowerText.includes('fountain')) {
+      shape = 'fountain'
+    } else if (lowerText.includes('sphere')) {
+      shape = 'sphere'
+    } else if (lowerText.includes('cylinder')) {
+      shape = 'cylinder'
+    } else if (lowerText.includes('sword')) {
+      shape = 'sword'
+    } else if (lowerText.includes('temple')) {
+      shape = 'temple'
+    } else if (lowerText.includes('ship')) {
+      shape = 'ship'
+    } else if (lowerText.includes('dragon')) {
+      shape = 'dragon'
+    } else if (lowerText.includes('crystal')) {
+      shape = 'crystal'
     } else if (lowerText.includes('motorcycle')) {
       shape = 'motorcycle'
     } else if (lowerText.includes('truck')) {
@@ -2004,6 +2098,13 @@ function App() {
             camera={{ position: [0, 2, 5], fov: 75 }}
             style={{ width: '100%', height: '100%' }}
             shadows
+            gl={{
+              antialias: true,
+              toneMapping: THREE.ACESFilmicToneMapping,
+              toneMappingExposure: 1.2,
+              outputEncoding: THREE.sRGBEncoding,
+              physicallyCorrectLights: true
+            }}
           >
             <Suspense fallback={null}>
               <Scene modelDetails={modelDetails} scale={scale} lightIntensity={lightIntensity} materialPreset={materialPreset} />
