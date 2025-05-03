@@ -1894,14 +1894,32 @@ function App() {
     setShowPreview(false)
 
     try {
-      const details = analyzeText(prompt)
-      setModelDetails(details)
+      // Call backend API to generate or fetch 3D model based on prompt
+      const response = await fetch('http://localhost:5000/api/generate-model', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ prompt })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate model')
+      }
+
+      const data = await response.json()
+      if (!data.model || !data.model.filePath) {
+        throw new Error('Invalid model data received')
+      }
+
+      setGltfModelPath(data.model.filePath)
+      setModelDetails({ shape: data.model.name, description: data.model.description })
       setAnalysis({
         keywords: prompt.toLowerCase().split(' '),
         complexity: prompt.length > 100 ? 'complex' : 'simple',
-        type: details.shape
+        type: data.model.name
       })
-      await new Promise(resolve => setTimeout(resolve, 1000))
       setShowPreview(true)
       toast.success('3D model generated successfully!')
     } catch (error) {
